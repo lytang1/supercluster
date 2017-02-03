@@ -64,7 +64,7 @@ SuperCluster.prototype = {
         var clusters = [];
         for (var i = 0; i < ids.length; i++) {
             var c = tree.points[ids[i]];
-            clusters.push(c.numPoints === 1 ? this.points[c.id] : getClusterJSON(c));
+            clusters.push(c.numPoints === 1 ? this.points[c.id] : getClusterJSON(c,this.points[c.id]));
         }
         return clusters;
     },
@@ -244,13 +244,13 @@ function createPointCluster(p, i) {
     return createCluster(lngX(coords[0]), latY(coords[1]), 1, i);
 }
 
-function getClusterJSON(cluster) {
+function getClusterJSON(cluster, point) {
     return {
         type: 'Feature',
         properties: getClusterProperties(cluster),
         geometry: {
             type: 'Point',
-            coordinates: [xLng(cluster.x), yLat(cluster.y)]
+            coordinates: [point.latitude, point.longitude]
         }
     };
 }
