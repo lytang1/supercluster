@@ -44,7 +44,6 @@ SuperCluster.prototype = {
 
             // index input points into a KD-tree
             this.trees[z + 1] = kdbush(clusters, getX, getY, this.options.nodeSize, Float32Array);
-
             clusters = this._cluster(clusters, z); // create a new set of clusters for the zoom
 
             if (log) console.log('z%d: %d clusters in %dms', z, clusters.length, +Date.now() - now);
@@ -64,7 +63,7 @@ SuperCluster.prototype = {
         var clusters = [];
         for (var i = 0; i < ids.length; i++) {
             var c = tree.points[ids[i]];
-            clusters.push(c.numPoints === 1 ? this.points[c.id] : getClusterJSON(c,this.points[c.id]));
+            clusters.push(c.numPoints === 1 ? this.points[c.id] : getClusterJSON(c));
         }
         return clusters;
     },
@@ -139,8 +138,7 @@ SuperCluster.prototype = {
 
         for (var i = 0; i < children.length; i++) {
             var props = children[i].properties;
-
-            if (props.cluster) {
+            if (props!= undefined&& props.cluster ) {
                 if (skipped + props.point_count <= offset) {
                     // skip the whole cluster
                     skipped += props.point_count;
@@ -184,7 +182,6 @@ SuperCluster.prototype = {
     _cluster: function (points, zoom) {
         var clusters = [];
         var r = this.options.radius / (this.options.extent * Math.pow(2, zoom));
-
         // loop through each point
         for (var i = 0; i < points.length; i++) {
             var p = points[i];
@@ -216,7 +213,8 @@ SuperCluster.prototype = {
                 clusters.push(p);
             } else {
                 p.parentId = i;
-                clusters.push(createCluster(wx / numPoints, wy / numPoints, numPoints, i));
+                
+                clusters.push(createCluster(wx / numPoints, wy / numPoints, numPoints, i,p.lat));
             }
         }
 
@@ -224,33 +222,34 @@ SuperCluster.prototype = {
     }
 };
 
-function createCluster(x, y, numPoints, id) {
+function createCluster(x, y,numPoints, id, lat=0) {
     return {
         x: x, // weighted cluster center
         y: y,
         zoom: Infinity, // the last zoom the cluster was processed at
 
+        lat: lat,
         // point id: index of the source feature in the original input array
         // cluster id: index of the first child of the cluster in the zoom level tree
         id: id,
-
         parentId: -1, // parent cluster id
         numPoints: numPoints
     };
 }
 
 function createPointCluster(p, i) {
-    var coords = p.geometry.coordinates;
-    return createCluster(lngX(coords[0]), latY(coords[1]), 1, i);
+    var xcoord = p.lat;
+    var ycoord = p.long;
+    return createCluster(lngX(xcoord), latY(ycoord),1, i, p.long);
 }
 
-function getClusterJSON(cluster, point) {
+function getClusterJSON(cluster) {
     return {
         type: 'Feature',
         properties: getClusterProperties(cluster),
         geometry: {
             type: 'Point',
-            coordinates: [point.latitude, point.longitude]
+            coordinates: [xLng(cluster.x),cluster.lat]
         }
     };
 }
